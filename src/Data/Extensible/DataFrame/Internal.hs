@@ -12,6 +12,8 @@ import qualified Data.Vector.Unboxed.Mutable as MU
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
 import Control.Monad.Primitive
+import Data.Thyme (UTCTime)
+import Data.Extensible.DataFrame.Time
 
 data family ColumnVector a :: *
 data family ColumnIOVector a :: *
@@ -28,6 +30,7 @@ pushBackGeneric v n k a
 
 class ColumnType a where
   unsafeIndex :: ColumnVector a -> Int -> a
+  unsafeSlice :: Int -> Int -> ColumnVector a -> ColumnVector a
   pushBack :: ColumnIOVector a -> a -> IO (ColumnIOVector a)
   unsafeFreeze :: ColumnIOVector a -> IO (ColumnVector a)
   new :: IO (ColumnIOVector a)
@@ -35,6 +38,7 @@ class ColumnType a where
 #define CT_Vector(type, con, mcon) \
 instance ColumnType (type) where { \
   unsafeIndex (con v) = G.unsafeIndex v; \
+  unsafeSlice m n (con v) = con (G.unsafeSlice m n v); \
   pushBack (mcon v n) = pushBackGeneric v n mcon; \
   unsafeFreeze (mcon v _) = con <$> G.unsafeFreeze v; \
   new = do; \
@@ -52,6 +56,14 @@ CT_Vector(Float, CV_Float, CVM_Float)
 newtype instance ColumnVector Double = CV_Double (U.Vector Double)
 data instance ColumnIOVector Double = CVM_Double (MU.IOVector Double) !Int
 CT_Vector(Double, CV_Double, CVM_Double)
+
+newtype instance ColumnVector UTCTime = CV_UTCTime (U.Vector UTCTime)
+data instance ColumnIOVector UTCTime = CVM_UTCTime (MU.IOVector UTCTime) !Int
+CT_Vector(UTCTime, CV_UTCTime, CVM_UTCTime)
+
+newtype instance ColumnVector ISO8601 = CV_ISO8601 (U.Vector ISO8601)
+data instance ColumnIOVector ISO8601 = CVM_ISO8601 (MU.IOVector ISO8601) !Int
+CT_Vector(ISO8601, CV_ISO8601, CVM_ISO8601)
 
 newtype instance ColumnVector B.ByteString = CV_ByteString (V.Vector B.ByteString)
 data instance ColumnIOVector B.ByteString = CVM_ByteString (MV.IOVector B.ByteString) !Int

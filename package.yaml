@@ -21,20 +21,29 @@ description:         Please see the README on Github at <https://github.com/fumi
 
 dependencies:
 - base >= 4.7 && < 5
+- attoparsec
 - cassava
 - extensible
 - vector
 - bytestring
+- old-locale
 - primitive
 - text
 - text-short
+- thyme
+- vector-th-unbox
 
 library:
   source-dirs: src
+  exposed-modules:
+    - Data.Extensible.DataFrame
+    - Data.Extensible.DataFrame.Internal
+    - Data.Extensible.DataFrame.Time
   ghc-options: -Wall
   default-extensions:
     - DataKinds
     - PolyKinds
     - FlexibleContexts
+    - RankNTypes
     - ScopedTypeVariables
     - TypeOperators
