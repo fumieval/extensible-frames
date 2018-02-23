@@ -2,8 +2,8 @@
 {-# OPTIONS_GHC -fno-warn-simplifiable-class-constraints #-}
 module Data.Extensible.DataFrame
   ( DataFrame(..)
-  , head
-  , tail
+  , headN
+  , tailN
   , rowAt
   , columnAt
   , readCSVFile
@@ -34,15 +34,15 @@ instance Forall (KeyValue KnownSymbol Typeable) xs => Show (DataFrame xs) where
       ++ " :: " ++ show (typeRep (Proxy :: Proxy (AssocValue kv))))
     []
 
-head :: Forall (KeyValue KnownSymbol I.ColumnType) xs => DataFrame xs -> Int -> DataFrame xs
-head df n = DataFrame
+headN :: Forall (KeyValue KnownSymbol I.ColumnType) xs => DataFrame xs -> Int -> DataFrame xs
+headN df n = DataFrame
   { dfContent = htabulateFor proxyColumns $ \p -> Field $ I.unsafeSlice 0 n
       $ getField $ hlookup p $ dfContent df
   , dfLength = n
   }
 
-tail :: Forall (KeyValue KnownSymbol I.ColumnType) xs => DataFrame xs -> Int -> DataFrame xs
-tail df n = DataFrame
+tailN :: Forall (KeyValue KnownSymbol I.ColumnType) xs => DataFrame xs -> Int -> DataFrame xs
+tailN df n = DataFrame
   { dfContent = htabulateFor proxyColumns $ \p -> Field $ I.unsafeSlice (dfLength df - n) n
       $ getField $ hlookup p $ dfContent df
   , dfLength = n
