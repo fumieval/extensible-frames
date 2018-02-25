@@ -1,15 +1,19 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, TemplateHaskell, DeriveDataTypeable #-}
 module Data.Extensible.DataFrame.Time where
 
 import Data.Attoparsec.ByteString
 import Data.Csv
 import Data.Thyme
+import Data.Typeable
 import Data.Vector.Unboxed.Deriving
 import System.Locale (defaultTimeLocale)
 
-newtype ISO8601 = ISO8601 { getISO8601 :: UTCTime }
+newtype ISO8601 = ISO8601 { unISO8601 :: UTCTime } deriving (Eq, Ord, Typeable)
 
-derivingUnbox "ISO8601" [t|ISO8601 -> UTCTime|] [|getISO8601|] [|ISO8601|]
+instance Show ISO8601 where
+  showsPrec d = showsPrec d . unISO8601
+
+derivingUnbox "ISO8601" [t|ISO8601 -> UTCTime|] [|unISO8601|] [|ISO8601|]
 
 instance FromField ISO8601 where
   parseField f = do

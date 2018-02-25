@@ -39,8 +39,8 @@ library:
   source-dirs: src
   exposed-modules:
     - Data.Extensible.DataFrame
-    - Data.Extensible.DataFrame.Internal
     - Data.Extensible.DataFrame.Time
+    - Data.Extensible.DataFrame.Types
   ghc-options: -Wall
   default-extensions:
     - DataKinds
