@@ -20,17 +20,17 @@ module Data.Extensible.DataFrame
   , Csv.DecodeOptions(..)
   , Csv.defaultDecodeOptions
   , T.Text
+  , ST.ShortText
   , B.ByteString
+  , SB.ShortByteString
+  , TimeAs(..)
   , ISO8601
   ) where
 
-import Control.Monad.Primitive
 import Data.Extensible
 import Data.Extensible.DataFrame.Time
 import Data.Extensible.DataFrame.Types
-import Data.List (intercalate)
 import Data.Proxy
-import Data.Typeable
 import GHC.TypeLits
 import qualified Control.Foldl as F
 import qualified Data.ByteString as B
@@ -43,11 +43,6 @@ import qualified Data.Text as T
 import qualified Data.Text.Short as ST
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as MG
-import qualified Data.Vector.Unboxed as U
-import qualified Data.Vector.Unboxed.Mutable as MU
-import qualified Data.Vector as V
-import Data.Vector.Unboxed.Deriving
-import Data.Thyme (UTCTime)
 import System.IO
 
 slice :: Forall (KeyValue KnownSymbol ColumnType) xs

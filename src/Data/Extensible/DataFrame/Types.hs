@@ -64,8 +64,8 @@ instance ColumnType Double where
 instance ColumnType UTCTime where
   type ColumnVector UTCTime = U.Vector
 
-instance ColumnType ISO8601 where
-  type ColumnVector ISO8601 = U.Vector
+instance ColumnType (TimeAs fmt) where
+  type ColumnVector (TimeAs fmt) = U.Vector
 
 instance ColumnType B.ByteString where
   type ColumnVector B.ByteString = V.Vector
