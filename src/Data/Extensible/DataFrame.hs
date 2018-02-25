@@ -2,11 +2,27 @@
 {-# OPTIONS_GHC -fno-warn-simplifiable-class-constraints #-}
 module Data.Extensible.DataFrame
   ( DataFrame(..)
-  , headN
-  , tailN
-  , rowAt
-  , columnAt
+  -- * Construction
   , readCSVFile
+  -- * slice
+  , slice
+  -- * Access
+  , (#-)
+  , (#|)
+  -- * Foldl
+  , (|=)
+  -- * Quantiles
+  , getTDigest
+  , quartiles
+  , median
+  -- * Statistics
+  , mean
+  -- * Reexported types
+  , Csv.DecodeOptions(..)
+  , Csv.defaultDecodeOptions
+  , T.Text
+  , B.ByteString
+  , ISO8601
   ) where
 
 import Prelude hiding (head, tail)
@@ -18,9 +34,14 @@ import qualified Data.Extensible.DataFrame.Internal as I
 import Data.Extensible
 import qualified Data.Extensible.Struct as S
 import Data.Proxy
+import qualified Data.TDigest as TD
 import GHC.TypeLits
 import Data.Typeable
 import System.IO
+import Data.Extensible.DataFrame.Time
+import qualified Data.Text as T
+import qualified Data.ByteString as B
+import qualified Control.Foldl as F
 
 data DataFrame xs = DataFrame
   { dfContent :: !(RecordOf I.ColumnVector xs)
@@ -34,34 +55,57 @@ instance Forall (KeyValue KnownSymbol Typeable) xs => Show (DataFrame xs) where
       ++ " :: " ++ show (typeRep (Proxy :: Proxy (AssocValue kv))))
     []
 
-headN :: Forall (KeyValue KnownSymbol I.ColumnType) xs => DataFrame xs -> Int -> DataFrame xs
-headN df n = DataFrame
-  { dfContent = htabulateFor proxyColumns $ \p -> Field $ I.unsafeSlice 0 n
-      $ getField $ hlookup p $ dfContent df
-  , dfLength = n
+slice :: Forall (KeyValue KnownSymbol I.ColumnType) xs => DataFrame xs -> Int -> Int -> DataFrame xs
+slice df m n = DataFrame
+  { dfContent = htabulateFor proxyColumns $ \p -> Field
+    $ I.unsafeSlice ofs len
+    $ getField $ hlookup p $ dfContent df
+  , dfLength = len
   }
+  where
+    ofs = m `mod` dfLength df
+    len = max 0 $ min n $ dfLength df - ofs
 
-tailN :: Forall (KeyValue KnownSymbol I.ColumnType) xs => DataFrame xs -> Int -> DataFrame xs
-tailN df n = DataFrame
-  { dfContent = htabulateFor proxyColumns $ \p -> Field $ I.unsafeSlice (dfLength df - n) n
-      $ getField $ hlookup p $ dfContent df
-  , dfLength = n
-  }
-
-rowAt :: Forall (KeyValue KnownSymbol I.ColumnType) xs
+(#-) :: Forall (KeyValue KnownSymbol I.ColumnType) xs
   => DataFrame xs
   -> Int
   -> Record xs
-rowAt (DataFrame df len) i
+DataFrame df len #- i
   | i < 0 || i >= len = error $ "rowAt: out of bounds (" ++ show len ++ ")"
   | otherwise = htabulateFor (Proxy :: Proxy (KeyValue KnownSymbol I.ColumnType))
     $ \j -> Field $ pure $ flip I.unsafeIndex i $ getField $ hlookup j df
 
-columnAt :: Associate k v xs
+infixl 4 #-
+
+(#|) :: Associate k v xs
   => DataFrame xs
   -> Proxy k
   -> Field I.ColumnVector (k ':> v)
-columnAt (DataFrame df _) _ = hlookup association df
+DataFrame df _ #| _ = hlookup association df
+
+infixl 4 #|
+
+(|=) :: I.ColumnType a => Field I.ColumnVector (k ':> a) -> F.Fold a b -> b
+Field vec |= f = F.fold f (I.toList vec)
+infixl 3 |=
+
+mean :: (Fractional a, I.ColumnType a) => Field I.ColumnVector (k ':> a) -> a
+mean (Field vec) = sum (I.toList vec) / fromIntegral (I.length vec)
+{-# INLINE mean #-}
+
+getTDigest :: KnownNat comp => Field I.ColumnVector (k ':> Double) -> TD.TDigest comp
+getTDigest (Field vec) = TD.tdigest (I.toList vec)
+{-# INLINE getTDigest #-}
+
+median :: Field I.ColumnVector (k ':> Double) -> Maybe Double
+median col = TD.median td where
+  td = getTDigest col :: TD.TDigest 25
+  q = flip
+
+quartiles :: Field I.ColumnVector (k ':> Double) -> Maybe (Double, Double, Double)
+quartiles col = (,,) <$> q 0.25 <*> q 0.5 <*> q 0.75 where
+  td = getTDigest col :: TD.TDigest 25
+  q = flip TD.quantile td
 
 proxyColumns :: Proxy (KeyValue KnownSymbol I.ColumnType)
 proxyColumns = Proxy

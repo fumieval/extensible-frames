@@ -34,16 +34,20 @@ class ColumnType a where
   pushBack :: ColumnIOVector a -> a -> IO (ColumnIOVector a)
   unsafeFreeze :: ColumnIOVector a -> IO (ColumnVector a)
   new :: IO (ColumnIOVector a)
+  length :: ColumnVector a -> Int
+  toList :: ColumnVector a -> [a]
 
 #define CT_Vector(type, con, mcon) \
 instance ColumnType (type) where { \
   unsafeIndex (con v) = G.unsafeIndex v; \
   unsafeSlice m n (con v) = con (G.unsafeSlice m n v); \
   pushBack (mcon v n) = pushBackGeneric v n mcon; \
-  unsafeFreeze (mcon v _) = con <$> G.unsafeFreeze v; \
+  unsafeFreeze (mcon v l) = con . G.take l <$> G.unsafeFreeze v; \
+  toList (con v) = G.toList v; \
+  length (con v) = G.length v; \
   new = do; \
     v <- MG.unsafeNew 64; \
-    return $ mcon v 0 }
+    return $ mcon v 0;}
 
 newtype instance ColumnVector Int = CV_Int (U.Vector Int)
 data instance ColumnIOVector Int = CVM_Int (MU.IOVector Int) !Int
@@ -53,7 +57,7 @@ newtype instance ColumnVector Float = CV_Float (U.Vector Float)
 data instance ColumnIOVector Float = CVM_Float (MU.IOVector Float) !Int
 CT_Vector(Float, CV_Float, CVM_Float)
 
-newtype instance ColumnVector Double = CV_Double (U.Vector Double)
+newtype instance ColumnVector Double = CV_Double (U.Vector Double) deriving (Show)
 data instance ColumnIOVector Double = CVM_Double (MU.IOVector Double) !Int
 CT_Vector(Double, CV_Double, CVM_Double)
 

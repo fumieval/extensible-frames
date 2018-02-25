@@ -24,10 +24,12 @@ dependencies:
 - attoparsec
 - cassava
 - extensible
+- foldl
 - vector
 - bytestring
 - old-locale
 - primitive
+- tdigest
 - text
 - text-short
 - thyme
